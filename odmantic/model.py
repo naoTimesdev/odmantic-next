@@ -642,17 +642,34 @@ class _BaseODMModel(pydantic.BaseModel, metaclass=ABCMeta):
             exclude_none=exclude_none,
         )
 
-    def doc(self, include: Optional["AbstractSetIntStr"] = None) -> Dict[str, Any]:
+    def doc(
+        self,
+        include: Optional["AbstractSetIntStr"] = None,
+        *,
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+        exclude_none: bool = False,
+    ) -> Dict[str, Any]:
         """Generate a document representation of the instance (as a dictionary).
 
         Args:
             include: field that should be included; if None, every fields will be
                 included
+            exclude_unset: only update fields explicitly set in the patch object (only
+                applies to Pydantic models)
+            exclude_defaults: only update fields that are different from their default
+                value in the patch object (only applies to Pydantic models)
+            exclude_none: only update fields different from None in the patch object
+                (only applies to Pydantic models)
 
         Returns:
             the document associated to the instance
         """
-        raw_doc = self.dict()
+        raw_doc = self.dict(
+            exclude_unset=exclude_unset,
+            exclude_defaults=exclude_defaults,
+            exclude_none=exclude_none,
+        )
         doc: Dict[str, Any] = {}
         for field_name, field in self.__odm_fields__.items():
             if include is not None and field_name not in include:
@@ -665,7 +682,10 @@ class _BaseODMModel(pydantic.BaseModel, metaclass=ABCMeta):
                         raw_doc[field_name]
                     )
                 else:
-                    doc[field.key_name] = raw_doc[field_name]
+                    try:
+                        doc[field.key_name] = raw_doc[field_name]
+                    except KeyError:
+                        pass
         return doc
 
     @classmethod

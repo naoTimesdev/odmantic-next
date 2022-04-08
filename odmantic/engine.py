@@ -301,7 +301,13 @@ class AIOEngine:
         return results[0]
 
     async def _save(
-        self, instance: ModelType, session: AsyncIOMotorClientSession
+        self,
+        instance: ModelType,
+        session: AsyncIOMotorClientSession,
+        *,
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+        exclude_none: bool = False,
     ) -> ModelType:
         """Perform an atomic save operation in the specified session"""
         save_tasks = []
@@ -314,7 +320,12 @@ class AIOEngine:
             instance.__fields_modified__ | instance.__mutable_fields__
         ) - set([instance.__primary_field__])
         if len(fields_to_update) > 0:
-            doc = instance.doc(include=fields_to_update)
+            doc = instance.doc(
+                include=fields_to_update,
+                exclude_unset=exclude_unset,
+                exclude_defaults=exclude_defaults,
+                exclude_none=exclude_none,
+            )
             collection = self.get_collection(type(instance))
             await collection.update_one(
                 {"_id": getattr(instance, instance.__primary_field__)},
@@ -361,7 +372,14 @@ class AIOEngine:
         self._server_version = tuple(int(value) for value in version_str.split("."))
         return self._server_version
 
-    async def save(self, instance: ModelType) -> ModelType:
+    async def save(
+        self,
+        instance: ModelType,
+        *,
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+        exclude_none: bool = False,
+    ) -> ModelType:
         """Persist an instance to the database
 
         This method behaves as an 'upsert' operation. If a document already exists
@@ -371,6 +389,12 @@ class AIOEngine:
 
         Args:
             instance: instance to persist
+            exclude_unset: only update fields explicitly set in the patch object (only
+                applies to Pydantic models)
+            exclude_defaults: only update fields that are different from their default
+                value in the patch object (only applies to Pydantic models)
+            exclude_none: only update fields different from None in the patch object
+                (only applies to Pydantic models)
 
         Returns:
             the saved instance
@@ -388,7 +412,13 @@ class AIOEngine:
 
         async with await self.client.start_session() as s:
             async with s.start_transaction():
-                await self._save(instance, s)
+                await self._save(
+                    instance,
+                    s,
+                    exclude_unset=exclude_unset,
+                    exclude_defaults=exclude_defaults,
+                    exclude_none=exclude_none,
+                )
         return instance
 
     async def save_all(self, instances: Sequence[ModelType]) -> List[ModelType]:
