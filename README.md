@@ -1,3 +1,10 @@
+## "Next" Version
+
+This version introduces some fixes and PR implementation from parent repository. It also bumped some requirements especially
+motor to use anything above `2.5.0`.
+
+---
+
 <div align="center">
 <h1>ODMantic</h1>
 <a href="https://github.com/art049/odmantic/actions?query=workflow%3A%22build%22+branch%3Amaster" target="_blank">
