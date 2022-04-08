@@ -32,6 +32,7 @@ from odmantic.model import Model
 from odmantic.query import QueryExpression, SortExpression, and_
 
 ModelType = TypeVar("ModelType", bound=Model)
+ProjectionType = TypeVar("ProjectionType", bound=Model)
 
 SortExpressionType = Optional[Union[FieldProxy, Tuple[FieldProxy]]]
 
@@ -114,6 +115,9 @@ class AIOEngine:
         self.client = motor_client
         self.database_name = database
         self.database = motor_client[self.database_name]
+
+        self._server_type: Optional[str] = None
+        self._server_version: Optional[tuple] = None
 
     def get_collection(self, model: Type[ModelType]) -> AsyncIOMotorCollection:
         """Get the motor collection associated to a Model.
@@ -320,6 +324,43 @@ class AIOEngine:
             object.__setattr__(instance, "__fields_modified__", set())
         return instance
 
+    async def get_server_type(self) -> Optional[str]:
+        # Cached data
+        if self._server_type is not None:
+            return self._server_type
+
+        # to check the server type, let's call the `isMaster` command
+        result = await self.database.command("isMaster")
+
+        # if the `msg` field is set to `isdbgrid` we're connected to a mongos
+        if result and result.get("msg") == "isdbgrid":
+            self._server_type = "mongos"
+
+        # if the `setname` field is set we're connected to a replica set member.
+        elif result and result.get("setName") is not None:
+            self._server_type = "replica_set"
+
+        # otherwise we're connected to a standalone.
+        else:
+            self._server_type = "standalone"
+
+        return self._server_type
+
+    async def get_server_version(self) -> Optional[tuple]:
+        # cached by instance after first call.
+        if self._server_version is not None:
+            return self._server_version
+
+        result = await self.client.server_info()
+        if result is None:
+            return None
+
+        version_str = result.get("version")
+        if version_str is None:
+            return None
+        self._server_version = tuple(int(value) for value in version_str.split("."))
+        return self._server_version
+
     async def save(self, instance: ModelType) -> ModelType:
         """Persist an instance to the database
 
@@ -416,3 +457,45 @@ class AIOEngine:
         collection = self.database[model.__collection__]
         count = await collection.count_documents(query)
         return int(count)
+
+    async def find_projection(
+        self,
+        model: Type[ModelType],
+        query: Union[Dict, bool] = {},  # bool: allow using binary operators with mypy
+        *,
+        projection: Type[ProjectionType],
+        limit: int = 0,
+        skip: int = 0,
+    ) -> List[ProjectionType]:
+        """Project the documents matching a query
+
+        Args:
+            model: model to perform the operation on
+            query: query filters to apply
+            projection: projection to apply
+            limit: maximum number of documents to return
+            skip: number of documents to skip
+
+        Returns:
+            list of documents matching the query
+
+        <!---
+        #noqa: DAR401 TypeError
+        -->
+        """
+        collection = self.get_collection(model)
+        pipeline: List[Dict] = [{"$match": query}]
+        if limit > 0:
+            pipeline.append({"$limit": limit})
+        if skip > 0:
+            pipeline.append({"$skip": skip})
+        projected_fields = projection.__annotations__.keys()
+        pipeline.append({"$project": {fname: 1 for fname in projected_fields}})
+
+        cursor = collection.aggregate(pipeline)
+        raw_docs = await cursor.to_list(length=None)
+        instances = []
+        for raw_doc in raw_docs:
+            instance = projection.parse_doc(raw_doc)
+            instances.append(instance)
+        return instances

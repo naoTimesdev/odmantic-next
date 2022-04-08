@@ -86,6 +86,10 @@ float_to_top = true
 known_first_party = ["odmantic", "tests"]
 skip = ["docs"]
 
+[tool.black]
+line-length = 88
+target-version = ["py38"]
+
 [tool.pytest.ini_options]
 filterwarnings = [
     "ignore:\"@coroutine\" decorator is deprecated.*:DeprecationWarning:motor.*",

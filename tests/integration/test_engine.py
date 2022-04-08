@@ -427,9 +427,7 @@ async def test_find_sort_wrong_tuple_argument(engine: AIOEngine):
 
 
 async def test_find_sort_desc(engine: AIOEngine, person_persisted: List[PersonModel]):
-    results = await engine.find(
-        PersonModel, sort=PersonModel.last_name.desc()  # type: ignore
-    )
+    results = await engine.find(PersonModel, sort=PersonModel.last_name.desc())  # type: ignore
     assert results == list(
         reversed(sorted(person_persisted, key=lambda person: person.last_name))
     )
@@ -550,3 +548,19 @@ async def test_find_document_field_not_set_with_default_factory_enabled(
     instance = await engine.find_one(M)
     assert instance is not None
     assert instance.field == "hello"
+
+
+async def test_find_projection(engine: AIOEngine):
+    initial_instance = PersonModel(first_name="Jean-Pierre", last_name="Pernaud")
+    await engine.add(initial_instance)
+
+    class ProjectedPersonModel(Model):
+        first_name: str
+
+    found_instances = await engine.find_projection(
+        PersonModel, projection=ProjectedPersonModel
+    )
+    assert len(found_instances) == 1
+    assert found_instances[0].first_name == initial_instance.first_name
+    with pytest.raises(AttributeError):
+        found_instances[0].last_name  # type: ignore

@@ -383,7 +383,10 @@ class ModelMetaclass(BaseModelMetaclass):
     ):
         if namespace.get("__module__") != "odmantic.model" and namespace.get(
             "__qualname__"
-        ) not in ("_BaseODMModel", "Model"):
+        ) not in (
+            "_BaseODMModel",
+            "Model",
+        ):
             mcs.__validate_cls_namespace__(name, namespace)
             config: BaseODMConfig = namespace["Config"]
             primary_field: Optional[str] = None
@@ -445,7 +448,10 @@ class EmbeddedModelMetaclass(BaseModelMetaclass):
 
         if namespace.get("__module__") != "odmantic.model" and namespace.get(
             "__qualname__"
-        ) not in ("_BaseODMModel", "EmbeddedModel"):
+        ) not in (
+            "_BaseODMModel",
+            "EmbeddedModel",
+        ):
             mcs.__validate_cls_namespace__(name, namespace)
             odm_fields: Dict[str, ODMBaseField] = namespace["__odm_fields__"]
             for field in odm_fields.values():
@@ -530,9 +536,7 @@ class _BaseODMModel(pydantic.BaseModel, metaclass=ABCMeta):
             new model instance
 
         """
-        copied = super().copy(
-            include=include, exclude=exclude, update=update, deep=deep  # type: ignore
-        )
+        copied = super().copy(include=include, exclude=exclude, update=update, deep=deep)  # type: ignore
         object.__setattr__(copied, "__fields_modified__", set(copied.__fields__))
         return copied
 
