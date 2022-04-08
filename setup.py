@@ -1,6 +1,6 @@
 import setuptools
 
-__name__ = "odmantic-next"
+__name__ = "odmantic"
 __version__ = "0.3.6"
 
 
