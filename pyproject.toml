@@ -73,8 +73,8 @@ pytest-testmon = "^1.0.3"
 async-asgi-testclient = "^1.4.4"
 
 [build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.isort]
 line_length = 88
