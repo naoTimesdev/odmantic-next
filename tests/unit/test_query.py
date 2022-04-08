@@ -38,3 +38,7 @@ def test_sort_repr():
 
 def test_sort_empty_repr():
     assert repr(SortExpression()) == "SortExpression()"
+
+
+def test_exists():
+    assert (Publisher.name.exists(True)) == {"name": {"$exists": True}}
