@@ -552,7 +552,7 @@ async def test_find_document_field_not_set_with_default_factory_enabled(
 
 async def test_find_projection(engine: AIOEngine):
     initial_instance = PersonModel(first_name="Jean-Pierre", last_name="Pernaud")
-    await engine.add(initial_instance)
+    await engine.save(initial_instance)
 
     class ProjectedPersonModel(Model):
         first_name: str

@@ -536,7 +536,12 @@ class _BaseODMModel(pydantic.BaseModel, metaclass=ABCMeta):
             new model instance
 
         """
-        copied = super().copy(include=include, exclude=exclude, update=update, deep=deep)  # type: ignore
+        copied = super().copy(
+            include=include,
+            exclude=exclude,
+            update=update,
+            deep=deep,
+        )  # type: ignore
         object.__setattr__(copied, "__fields_modified__", set(copied.__fields__))
         return copied
 
